@@ -1,0 +1,30 @@
+name: raid_shard_counter
+description: A personal RAID shard mercy counter for desktop and Android.
+publish_to: "none"
+
+version: 1.0.1+2
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  file_picker: ^10.3.3
+  flutter:
+    sdk: flutter
+  google_fonts: ^8.1.0
+  url_launcher: ^6.3.2
+  package_info_plus: ^8.1.2
+  window_manager: ^0.5.1
+  http: ^1.6.0
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/shards/
+    - assets/guides/
+    - assets/all_guides_data.json
