@@ -7,6 +7,6 @@
 _flutter.loader.load({
   config: {
     // Use the local CanvasKit bundle instead of the CDN to reduce test flakiness.
-    canvasKitBaseUrl: "/canvaskit/",
+    canvasKitBaseUrl: "canvaskit/",
   },
 });
