@@ -42,6 +42,6 @@ _flutter.buildConfig = {"engineRevision":"c416acfeb8126e097f758c664aaa3da929e27d
 _flutter.loader.load({
   config: {
     // Use the local CanvasKit bundle instead of the CDN to reduce test flakiness.
-    canvasKitBaseUrl: "/canvaskit/",
+    canvasKitBaseUrl: "canvaskit/",
   },
 });
