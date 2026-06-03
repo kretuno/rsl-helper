@@ -30,7 +30,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web App
-        run: flutter build web --release --base-href "/rsl-helper/"
+        run: flutter build web --release --base-href "/rsl-helper/" --web-renderer html
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4

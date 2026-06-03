@@ -487,8 +487,28 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
               ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
               : Column(
                   children: [
-                    DragToMoveArea(
-                      child: _TopBar(
+                    kIsWeb
+                        ? _TopBar(
+                            selectedTab: _selectedTab,
+                            onTabChanged: (index) =>
+                                setState(() => _selectedTab = index),
+                            showHistory: _showHistory,
+                            onHistoryPressed: isWide
+                                ? () => setState(() => _showHistory = !_showHistory)
+                                : _showHistorySheet,
+                            onInfoPressed: _showAppInfo,
+                            onDonatePressed: _openDonationUrl,
+                            onImportPressed: _importData,
+                            onExportPressed: _exportData,
+                            onLanguageChanged: _onLanguageChanged,
+                            onRefreshPressed: _refreshGuides,
+                            isCloudSupported: _store.isFirebaseSupported,
+                            isCloudLoggedIn: _store.isFirebaseSupported && FirebaseAuth.instance.currentUser != null,
+                            cloudUserEmail: _store.isFirebaseSupported ? FirebaseAuth.instance.currentUser?.email : null,
+                            onCloudPressed: _onCloudPressed,
+                          )
+                        : DragToMoveArea(
+                            child: _TopBar(
                         selectedTab: _selectedTab,
                         onTabChanged: (index) =>
                             setState(() => _selectedTab = index),
@@ -601,25 +621,15 @@ class _TopBar extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Text(
-                TranslationService.t('app_title'),
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 24),
               _TabButton(
-                label: TranslationService.t('counters').toUpperCase(),
+                label: TranslationService.t('counters'),
                 icon: Icons.analytics_outlined,
                 isActive: selectedTab == 0,
                 onPressed: () => onTabChanged(0),
               ),
               const SizedBox(width: 8),
               _TabButton(
-                label: TranslationService.t('guides').toUpperCase(),
+                label: TranslationService.t('guides'),
                 icon: Icons.auto_stories_outlined,
                 isActive: selectedTab == 1,
                 onPressed: () => onTabChanged(1),
@@ -638,7 +648,7 @@ class _TopBar extends StatelessWidget {
                 current: TranslationService.currentLanguage,
                 onChanged: onLanguageChanged,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               _TopAction(
                 icon: !isCloudSupported
                     ? Icons.cloud_off_rounded
@@ -653,7 +663,6 @@ class _TopBar extends StatelessWidget {
                         ? TranslationService.t('sync_connected_as').replaceAll('{0}', cloudUserEmail ?? '')
                         : TranslationService.t('cloud_sync')),
               ),
-              const SizedBox(width: 8),
               _TopAction(
                 icon: Icons.history_rounded,
                 onPressed: onHistoryPressed,

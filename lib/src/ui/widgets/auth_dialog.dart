@@ -69,12 +69,18 @@ class _AuthDialogState extends State<AuthDialog> {
             : TranslationService.currentLanguage == Language.uk
                 ? 'Помилка мережі. Перевірте підключення до інтернету.'
                 : 'Network error. Please check your connection.';
+      case 'keychain-error':
+        return TranslationService.currentLanguage == Language.ru
+            ? 'macOS требует подписи приложения для доступа к Keychain.\n\nИспользуйте веб-версию для синхронизации:\nhttps://kretuno.github.io/rsl-helper/'
+            : TranslationService.currentLanguage == Language.uk
+                ? 'macOS вимагає підпису додатку для доступу до Keychain.\n\nВикористайте веб-версію:\nhttps://kretuno.github.io/rsl-helper/'
+                : 'macOS requires app signing for Keychain access.\n\nUse the web version:\nhttps://kretuno.github.io/rsl-helper/';
       default:
         return TranslationService.currentLanguage == Language.ru
-            ? 'Произошла ошибка при авторизации.'
+            ? 'Ошибка: $code'
             : TranslationService.currentLanguage == Language.uk
-                ? 'Сталася помилка при авторизації.'
-                : 'An authentication error occurred.';
+                ? 'Помилка: $code'
+                : 'Error: $code';
     }
   }
 
