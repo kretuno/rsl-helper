@@ -76,6 +76,14 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
   }
 
   Future<void> _refreshGuides() async {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(TranslationService.t('web_refresh_not_supported')),
+        ),
+      );
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       final count = await GuideScraperService.refreshGuides();

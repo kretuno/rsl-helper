@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
@@ -14,6 +15,7 @@ class GuideScraperService {
 
   /// Основной метод парсинга (аналог super_scrape.ps1)
   static Future<int> refreshGuides() async {
+    if (kIsWeb) return 0;
     List<dynamic> allGuides = [];
     
     // Пытаемся загрузить существующие данные из локального файла
@@ -144,6 +146,7 @@ class GuideScraperService {
 
   /// Метод для получения данных (сначала из локального файла, потом из ассетов)
   static Future<String?> getGuidesJson() async {
+    if (kIsWeb) return null;
     final file = await _localFile;
     if (await file.exists()) {
       return await file.readAsString();
@@ -153,6 +156,7 @@ class GuideScraperService {
 
   /// Сохраняет изображение в локальный кэш
   static Future<void> cacheImage(String imageUrl, int id) async {
+    if (kIsWeb) return;
     try {
       if (imageUrl.isEmpty) return;
       final directory = await getApplicationDocumentsDirectory();
@@ -177,6 +181,7 @@ class GuideScraperService {
 
   /// Кэширует изображения для всех переданных гайдов по очереди
   static Future<void> cacheAllImages(List<dynamic> guides) async {
+    if (kIsWeb) return;
     for (var item in guides) {
       final id = item['Id'];
       final imageUrl = item['ImageUrl'];

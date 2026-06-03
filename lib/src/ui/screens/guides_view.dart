@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -93,6 +94,7 @@ class GuidesViewState extends State<GuidesView> {
     }
 
     if (didRepair) {
+      if (kIsWeb) return;
       try {
         final directory = await getApplicationDocumentsDirectory();
         final file = File('${directory.path}/all_guides_data.json');
@@ -294,6 +296,7 @@ class _GuideCardState extends State<_GuideCard> {
   }
 
   Future<void> _checkLocalCache() async {
+    if (kIsWeb) return;
     if (widget.guide.id == null) return;
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -333,7 +336,7 @@ class _GuideCardState extends State<_GuideCard> {
               child: InteractiveViewer(
                 maxScale: 5.0,
                 child: Center(
-                  child: _cachedFile != null
+                  child: !kIsWeb && _cachedFile != null
                       ? Image.file(
                           _cachedFile!,
                           errorBuilder: (context, error, stackTrace) => Image.asset(
@@ -439,7 +442,7 @@ class _GuideCardState extends State<_GuideCard> {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: _cachedFile != null
+                      child: !kIsWeb && _cachedFile != null
                           ? Image.file(
                               _cachedFile!,
                               fit: BoxFit.cover,
