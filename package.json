@@ -1,0 +1,8 @@
+{
+  "name": "raid-shard-counter-tools",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "firebase-tools": "^15.19.0"
+  }
+}

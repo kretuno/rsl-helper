@@ -1,29 +1,51 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:window_manager/window_manager.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'src/theme/app_colors.dart';
 import 'src/ui/screens/shard_overview_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await windowManager.ensureInitialized();
 
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(1280, 850),
-    minimumSize: Size(960, 700),
-    center: true,
-    backgroundColor: Colors.transparent,
-    skipTaskbar: false,
-    titleBarStyle: TitleBarStyle.hidden,
-    title: 'RSL Shard Memory',
-  );
-  
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-    await windowManager.setResizable(false);
-  });
+  final isFirebaseSupported = kIsWeb || (!Platform.isWindows && !Platform.isLinux);
+  if (isFirebaseSupported) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (e) {
+      debugPrint('Firebase initialization failed: $e');
+    }
+  }
+
+  if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
+    try {
+      await windowManager.ensureInitialized();
+
+      WindowOptions windowOptions = const WindowOptions(
+        size: Size(1280, 850),
+        minimumSize: Size(960, 700),
+        center: true,
+        backgroundColor: Colors.transparent,
+        skipTaskbar: false,
+        titleBarStyle: TitleBarStyle.hidden,
+        title: 'RSL Shard Memory',
+      );
+      
+      windowManager.waitUntilReadyToShow(windowOptions, () async {
+        await windowManager.show();
+        await windowManager.focus();
+        await windowManager.setResizable(false);
+      });
+    } catch (e) {
+      debugPrint('WindowManager initialization failed: $e');
+    }
+  }
 
   runApp(const ShardMercyApp());
 }

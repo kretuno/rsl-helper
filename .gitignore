@@ -46,3 +46,5 @@ app.*.map.json
 
 # Temp scratch scripts
 /scratch/
+node_modules/
+build/

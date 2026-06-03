@@ -1,13 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
+import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../data/shard_store.dart';
 import '../../data/default_counters.dart';
@@ -17,6 +20,7 @@ import '../../services/translation_service.dart';
 import '../../theme/app_colors.dart';
 import '../widgets/counter_card.dart';
 import '../widgets/history_list.dart';
+import '../widgets/auth_dialog.dart';
 import 'guides_view.dart';
 import '../../services/guide_scraper_service.dart';
 
@@ -35,6 +39,7 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
   bool _showHistory = false;
   int _selectedTab = 0; // 0: Counters, 1: Guides
   final Map<String, GlobalKey<CounterCardState>> _cardKeys = {};
+  StreamSubscription<User?>? _authSubscription;
 
   final GlobalKey<GuidesViewState> _guidesKey = GlobalKey();
 
@@ -42,6 +47,24 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
   void initState() {
     super.initState();
     _load();
+    if (_store.isFirebaseSupported) {
+      _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+        if (mounted) {
+          setState(() {});
+          if (user != null) {
+            _store.syncLocalToCloud().then((_) => _load());
+          } else {
+            _load();
+          }
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   void _onLanguageChanged(Language lang) {
@@ -234,6 +257,117 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
     );
   }
 
+  void _onCloudPressed() async {
+    if (!_store.isFirebaseSupported) {
+      showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.panel,
+          title: Text(
+            TranslationService.t('cloud_sync'),
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+          ),
+          content: Text(
+            TranslationService.t('sync_windows_not_supported'),
+            style: GoogleFonts.inter(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                TranslationService.t('close'),
+                style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+              ),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                final url = Uri.parse('https://kretuno.github.io/rsl-helper/');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.gold,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                TranslationService.t('sync_button_open_web'),
+                style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.panel,
+          title: Text(
+            TranslationService.t('cloud_sync'),
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+          ),
+          content: Text(
+            TranslationService.t('sync_connected_as').replaceAll('{0}', user.email ?? ''),
+            style: GoogleFonts.inter(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                TranslationService.t('close'),
+                style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await FirebaseAuth.instance.signOut();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        TranslationService.currentLanguage == Language.ru
+                            ? 'Вышли из аккаунта.'
+                            : TranslationService.currentLanguage == Language.uk
+                                ? 'Вийшли з акаунту.'
+                                : 'Logged out.',
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                TranslationService.t('sync_logout'),
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.red,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      final success = await showDialog<bool>(
+        context: context,
+        builder: (context) => const AuthDialog(),
+      );
+
+      if (success == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(TranslationService.t('sync_success'))),
+        );
+      }
+    }
+  }
+
   Future<void> _importData() async {
     final result = await FilePicker.platform.pickFiles(
       dialogTitle: TranslationService.t('import'),
@@ -241,13 +375,24 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
       allowedExtensions: const ['json'],
       lockParentWindow: true,
     );
-    final path = result?.files.single.path;
-    if (path == null) {
+    if (result == null || result.files.isEmpty) {
       return;
     }
 
     try {
-      final snapshot = ShardStore.decode(await File(path).readAsString());
+      final String jsonContent;
+      if (kIsWeb) {
+        final bytes = result.files.single.bytes;
+        if (bytes == null) {
+          throw const FormatException('Empty file');
+        }
+        jsonContent = utf8.decode(bytes);
+      } else {
+        final path = result.files.single.path;
+        if (path == null) return;
+        jsonContent = await File(path).readAsString();
+      }
+      final snapshot = ShardStore.decode(jsonContent);
       if (snapshot.currents.isEmpty) {
         throw const FormatException('Файл не содержит счетчики.');
       }
@@ -357,6 +502,10 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
                         onExportPressed: _exportData,
                         onLanguageChanged: _onLanguageChanged,
                         onRefreshPressed: _refreshGuides,
+                        isCloudSupported: _store.isFirebaseSupported,
+                        isCloudLoggedIn: _store.isFirebaseSupported && FirebaseAuth.instance.currentUser != null,
+                        cloudUserEmail: _store.isFirebaseSupported ? FirebaseAuth.instance.currentUser?.email : null,
+                        onCloudPressed: _onCloudPressed,
                       ),
                     ),
                     Expanded(
@@ -414,6 +563,10 @@ class _TopBar extends StatelessWidget {
   final VoidCallback onExportPressed;
   final ValueChanged<Language> onLanguageChanged;
   final VoidCallback onRefreshPressed;
+  final bool isCloudSupported;
+  final bool isCloudLoggedIn;
+  final String? cloudUserEmail;
+  final VoidCallback onCloudPressed;
 
   const _TopBar({
     required this.selectedTab,
@@ -426,6 +579,10 @@ class _TopBar extends StatelessWidget {
     required this.onExportPressed,
     required this.onLanguageChanged,
     required this.onRefreshPressed,
+    required this.isCloudSupported,
+    required this.isCloudLoggedIn,
+    required this.cloudUserEmail,
+    required this.onCloudPressed,
   });
 
   @override
@@ -480,6 +637,21 @@ class _TopBar extends StatelessWidget {
               _LanguagePicker(
                 current: TranslationService.currentLanguage,
                 onChanged: onLanguageChanged,
+              ),
+              const SizedBox(width: 8),
+              _TopAction(
+                icon: !isCloudSupported
+                    ? Icons.cloud_off_rounded
+                    : (isCloudLoggedIn ? Icons.cloud_done_rounded : Icons.cloud_queue_rounded),
+                color: !isCloudSupported
+                    ? Colors.white.withOpacity(0.3)
+                    : (isCloudLoggedIn ? AppColors.gold : Colors.white.withOpacity(0.7)),
+                onPressed: onCloudPressed,
+                tooltip: !isCloudSupported
+                    ? TranslationService.t('sync_windows_not_supported')
+                    : (isCloudLoggedIn
+                        ? TranslationService.t('sync_connected_as').replaceAll('{0}', cloudUserEmail ?? '')
+                        : TranslationService.t('cloud_sync')),
               ),
               const SizedBox(width: 8),
               _TopAction(

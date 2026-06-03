@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "981743629235",
+    "project_id": "rsl-shard-memory-kretuno",
+    "storage_bucket": "rsl-shard-memory-kretuno.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:981743629235:android:d89aa8f973e2f54de8d1c6",
+        "android_client_info": {
+          "package_name": "com.local.raid_shard_counter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCykFUloz9DNxncAhp95ubDUBq_chhQj8A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
