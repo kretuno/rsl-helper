@@ -179,8 +179,11 @@ class ShardStore {
     }).toList();
     
     final historyList = snapshot.history.map((h) => h.toJson()).toList();
+    final user = FirebaseAuth.instance.currentUser;
+    final email = user?.email;
 
     await FirebaseFirestore.instance.collection('users').doc(userId).set({
+      'email': email,
       'savedAt': savedAt.toIso8601String(),
       'counters': countersList,
       'history': historyList,

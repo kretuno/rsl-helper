@@ -21,6 +21,7 @@ import '../../theme/app_colors.dart';
 import '../widgets/counter_card.dart';
 import '../widgets/history_list.dart';
 import '../widgets/auth_dialog.dart';
+import '../widgets/admin_dialog.dart';
 import 'guides_view.dart';
 import '../../services/guide_scraper_service.dart';
 
@@ -227,6 +228,13 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showAdminPanel() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => const AdminDialog(),
     );
   }
 
@@ -514,6 +522,7 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
                             isCloudLoggedIn: _store.isFirebaseSupported && FirebaseAuth.instance.currentUser != null,
                             cloudUserEmail: _store.isFirebaseSupported ? FirebaseAuth.instance.currentUser?.email : null,
                             onCloudPressed: _onCloudPressed,
+                            onAdminPressed: _store.isFirebaseSupported && FirebaseAuth.instance.currentUser?.email == 'edosipov@gmail.com' ? _showAdminPanel : null,
                           )
                         : DragToMoveArea(
                             child: _TopBar(
@@ -534,6 +543,7 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
                         isCloudLoggedIn: _store.isFirebaseSupported && FirebaseAuth.instance.currentUser != null,
                         cloudUserEmail: _store.isFirebaseSupported ? FirebaseAuth.instance.currentUser?.email : null,
                         onCloudPressed: _onCloudPressed,
+                        onAdminPressed: _store.isFirebaseSupported && FirebaseAuth.instance.currentUser?.email == 'edosipov@gmail.com' ? _showAdminPanel : null,
                       ),
                     ),
                     Expanded(
@@ -595,6 +605,7 @@ class _TopBar extends StatelessWidget {
   final bool isCloudLoggedIn;
   final String? cloudUserEmail;
   final VoidCallback onCloudPressed;
+  final VoidCallback? onAdminPressed;
 
   const _TopBar({
     required this.selectedTab,
@@ -611,6 +622,7 @@ class _TopBar extends StatelessWidget {
     required this.isCloudLoggedIn,
     required this.cloudUserEmail,
     required this.onCloudPressed,
+    this.onAdminPressed,
   });
 
   @override
@@ -693,6 +705,13 @@ class _TopBar extends StatelessWidget {
                 color: AppColors.red.withValues(alpha: 0.8),
                 tooltip: TranslationService.t('help_project'),
               ),
+              if (onAdminPressed != null)
+                _TopAction(
+                  icon: Icons.admin_panel_settings_rounded,
+                  onPressed: onAdminPressed!,
+                  color: AppColors.gold,
+                  tooltip: 'Панель администратора',
+                ),
               _TopAction(
                 icon: Icons.info_outline_rounded,
                 onPressed: onInfoPressed,
