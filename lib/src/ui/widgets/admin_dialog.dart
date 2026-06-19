@@ -14,6 +14,8 @@ class AdminDialog extends StatefulWidget {
 class _AdminDialogState extends State<AdminDialog> {
   bool _isLoading = true;
   int _totalUsers = 0;
+  int _totalViews = 0;
+  int _uniqueViews = 0;
   List<Map<String, dynamic>> _usersList = [];
   String? _error;
 
@@ -78,10 +80,28 @@ class _AdminDialogState extends State<AdminDialog> {
         });
       }
 
+      // 3. Get page views stats
+      int totalViews = 0;
+      int uniqueViews = 0;
+      try {
+        final statsSnapshot = await FirebaseFirestore.instance.collection('stats').doc('visitors').get();
+        if (statsSnapshot.exists) {
+          final data = statsSnapshot.data();
+          if (data != null) {
+            totalViews = data['totalViews'] as int? ?? 0;
+            uniqueViews = data['uniqueViews'] as int? ?? 0;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error getting visitor stats: $e');
+      }
+
       if (mounted) {
         setState(() {
           _totalUsers = total;
           _usersList = users;
+          _totalViews = totalViews;
+          _uniqueViews = uniqueViews;
           _isLoading = false;
         });
       }
@@ -93,6 +113,62 @@ class _AdminDialogState extends State<AdminDialog> {
         });
       }
     }
+  }
+
+  Widget _buildSummaryCard({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.gold.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.gold, size: 18),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    color: Colors.white38,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    height: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatDateTime(DateTime? dt) {
@@ -182,50 +258,33 @@ class _AdminDialogState extends State<AdminDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Summary card
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.02),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.gold.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.people_alt_rounded, color: AppColors.gold, size: 28),
+                    // Summary row (Three indicators)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryCard(
+                            icon: Icons.people_alt_rounded,
+                            label: 'В облаке',
+                            value: '$_totalUsers',
                           ),
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Всего пользователей в облаке',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white38,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$_totalUsers',
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.0,
-                                ),
-                              ),
-                            ],
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildSummaryCard(
+                            icon: Icons.remove_red_eye_rounded,
+                            label: 'Просмотры',
+                            value: '$_totalViews',
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildSummaryCard(
+                            icon: Icons.insights_rounded,
+                            label: 'Уникальные',
+                            value: '$_uniqueViews',
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
 

@@ -47,6 +47,7 @@ class _ShardOverviewScreenState extends State<ShardOverviewScreen> {
   @override
   void initState() {
     super.initState();
+    _store.trackVisitor();
     _load();
     if (_store.isFirebaseSupported) {
       _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {

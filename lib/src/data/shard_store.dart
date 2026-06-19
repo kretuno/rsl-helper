@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +14,34 @@ import '../models/shard_counter.dart';
 
 class ShardStore {
   bool get isFirebaseSupported => kIsWeb ? true : (!Platform.isWindows && !Platform.isLinux);
+
+  Future<void> trackVisitor() async {
+    if (!kIsWeb) return; // Only track visitors on Web
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final visitorId = prefs.getString('visitor_id');
+      final docRef = FirebaseFirestore.instance.collection('stats').doc('visitors');
+
+      if (visitorId == null) {
+        // Unique visitor
+        final randomNum = 100000 + Random().nextInt(900000);
+        final newId = '${DateTime.now().microsecondsSinceEpoch}_$randomNum';
+        await prefs.setString('visitor_id', newId);
+
+        await docRef.set({
+          'totalViews': FieldValue.increment(1),
+          'uniqueViews': FieldValue.increment(1),
+        }, SetOptions(merge: true));
+      } else {
+        // Returning visitor
+        await docRef.set({
+          'totalViews': FieldValue.increment(1),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('Error tracking visitor: $e');
+    }
+  }
 
   Future<AppStateSnapshot?> load() async {
     // 1. Load local data first
